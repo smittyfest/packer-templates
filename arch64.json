@@ -1,0 +1,37 @@
+{
+  "variables": {
+    "arch_release": "2016.08.01",
+    "arch_sha1": "6db5a9e46267ba7ec4d9ae79d141e5a6d9d3cf88"
+  },
+  "builders": [
+    {
+      "type": "virtualbox-iso",
+      "guest_os_type": "ArchLinux_64",
+      "guest_additions_mode": "disable",
+      "iso_url": "http://archlinux.surlyjake.com/archlinux/iso/{{ user `arch_release` }}/archlinux-{{ user `arch_release` }}-dual.iso",
+      "iso_checksum": "{{ user `arch_sha1` }}",
+      "iso_checksum_type": "sha1",
+      "ssh_username": "vagrant",
+      "ssh_password": "vagrant",
+      "ssh_timeout": "30m",
+      "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
+      "disk_size": 8000,
+      "http_directory": "scripts",
+      "boot_wait": "10s",
+      "boot_command": [
+        "<enter><wait10><wait10><wait10><wait10>",
+        "curl -O http://{{ .HTTPIP }}:{{ .HTTPPort }}/install.sh<enter><wait5>",
+        "bash ./install.sh<enter>"
+      ]
+    }
+  ],
+  "provisioners": [
+  ],
+  "post-processors": [
+    {
+      "type": "vagrant",
+      "output": "arch64.box",
+      "compression_level": 9
+    }
+  ]
+}
