@@ -32,8 +32,7 @@
   "post-processors": [
     {
       "type": "vagrant",
-      "output": "arch64.box",
-      "compression_level": 9
+      "output": "arch64.box"
     }
   ]
 }

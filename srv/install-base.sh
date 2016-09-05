@@ -35,7 +35,7 @@ echo "==> mounting ${ROOT_PARTITION} to ${TARGET_DIR}"
 /usr/bin/mount ${ROOT_PARTITION} ${TARGET_DIR}
 
 echo '==> bootstrapping the base installation'
-/usr/bin/pacstrap ${TARGET_DIR} base base-devel
+/usr/bin/pacstrap ${TARGET_DIR} base base-devel virtualbox-guest-{dkms,utils}
 #/usr/bin/arch-chroot ${TARGET_DIR} pacman -S --noconfirm gptfdisk openssh syslinux
 /usr/bin/arch-chroot ${TARGET_DIR} pacman -S --noconfirm openssh syslinux
 /usr/bin/arch-chroot ${TARGET_DIR} syslinux-install_update -i -a -m
@@ -70,6 +70,8 @@ cat <<-EOF > "${TARGET_DIR}${CONFIG_SCRIPT}"
 	echo 'vagrant ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.d/10_vagrant
 	/usr/bin/chmod 0440 /etc/sudoers.d/10_vagrant
 	/usr/bin/install --directory --owner=vagrant --group=users --mode=0700 /home/vagrant/.ssh
+	# These keys are the "insecure" public/private keypair we offer to base box creators for use in their base boxes
+	# so that vagrant installations can automatically SSH into the boxes.
 	/usr/bin/curl --output /home/vagrant/.ssh/authorized_keys --location https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub
 	/usr/bin/chown vagrant:users /home/vagrant/.ssh/authorized_keys
 	/usr/bin/chmod 0600 /home/vagrant/.ssh/authorized_keys
