@@ -36,8 +36,8 @@ echo "==> mounting ${ROOT_PARTITION} to ${TARGET_DIR}"
 
 echo '==> bootstrapping the base installation'
 /usr/bin/pacstrap ${TARGET_DIR} base base-devel virtualbox-guest-{dkms,utils}
-#/usr/bin/arch-chroot ${TARGET_DIR} pacman -S --noconfirm gptfdisk openssh syslinux
-/usr/bin/arch-chroot ${TARGET_DIR} pacman -S --noconfirm openssh syslinux
+/usr/bin/arch-chroot ${TARGET_DIR} pacman -S --noconfirm gptfdisk openssh syslinux
+#/usr/bin/arch-chroot ${TARGET_DIR} pacman -S --noconfirm openssh syslinux
 /usr/bin/arch-chroot ${TARGET_DIR} syslinux-install_update -i -a -m
 /usr/bin/sed -i 's/sda3/sda1/' "${TARGET_DIR}/boot/syslinux/syslinux.cfg"
 /usr/bin/sed -i 's/TIMEOUT 50/TIMEOUT 10/' "${TARGET_DIR}/boot/syslinux/syslinux.cfg"
@@ -49,39 +49,69 @@ echo '==> generating the filesystem table'
 echo '==> generating the system configuration script'
 /usr/bin/install --mode=0755 /dev/null "${TARGET_DIR}${CONFIG_SCRIPT}"
 
-cat <<-EOF > "${TARGET_DIR}${CONFIG_SCRIPT}"
-	echo '${FQDN}' > /etc/hostname
-  echo "127.0.1.1	vagrant-arch64.org.localdomain	vagrant-arch64.org" >> /etc/hosts
-	/usr/bin/ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
-	hwclock --systohc --utc
-	echo 'KEYMAP=${KEYMAP}' > /etc/vconsole.conf
-	/usr/bin/sed -i 's/#${LANGUAGE}/${LANGUAGE}/' /etc/locale.gen
-	/usr/bin/locale-gen
-	/usr/bin/mkinitcpio -p linux
-	/usr/bin/usermod --password ${PASSWORD} root
-	# https://wiki.archlinux.org/index.php/Network_Configuration#Device_names
-	/usr/bin/ln -s /dev/null /etc/udev/rules.d/80-net-setup-link.rules
-	/usr/bin/ln -s '/usr/lib/systemd/system/dhcpcd@.service' '/etc/systemd/system/multi-user.target.wants/dhcpcd@eth0.service'
-	/usr/bin/sed -i 's/#UseDNS yes/UseDNS no/' /etc/ssh/sshd_config
-	/usr/bin/systemctl enable sshd.service
-	# Vagrant-specific configuration
-	/usr/bin/useradd --password ${PASSWORD} --comment 'Vagrant User' --create-home --gid users vagrant
-	echo 'Defaults env_keep += "SSH_AUTH_SOCK"' > /etc/sudoers.d/10_vagrant
-	echo 'vagrant ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.d/10_vagrant
-	/usr/bin/chmod 0440 /etc/sudoers.d/10_vagrant
-	/usr/bin/install --directory --owner=vagrant --group=users --mode=0700 /home/vagrant/.ssh
-	# These keys are the "insecure" public/private keypair we offer to base box creators for use in their base boxes
-	# so that vagrant installations can automatically SSH into the boxes.
-	/usr/bin/curl --output /home/vagrant/.ssh/authorized_keys --location https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub
-	/usr/bin/chown vagrant:users /home/vagrant/.ssh/authorized_keys
-	/usr/bin/chmod 0600 /home/vagrant/.ssh/authorized_keys
-	# clean up
-	/usr/bin/pacman -Rcns --noconfirm gptfdisk
-EOF
+echo '${FQDN}' > /etc/hostname
+echo "127.0.1.1	vagrant-arch64.org.localdomain	vagrant-arch64.org" >> /etc/hosts
+/usr/bin/ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
+hwclock --systohc --utc
+echo 'KEYMAP=${KEYMAP}' > /etc/vconsole.conf
+/usr/bin/sed -i 's/#${LANGUAGE}/${LANGUAGE}/' /etc/locale.gen
+/usr/bin/locale-gen
+/usr/bin/mkinitcpio -p linux
+/usr/bin/usermod --password ${PASSWORD} root
+/usr/bin/ln -s /dev/null /etc/udev/rules.d/80-net-setup-link.rules
+/usr/bin/ln -s '/usr/lib/systemd/system/dhcpcd@.service' '/etc/systemd/system/multi-user.target.wants/dhcpcd@eth0.service'
+/usr/bin/sed -i 's/#UseDNS yes/UseDNS no/' /etc/ssh/sshd_config
+echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+systemctl enable sshd.service
+/usr/bin/useradd --password ${PASSWORD} --comment 'Vagrant User' --create-home --gid users vagrant
+echo 'Defaults env_keep += "SSH_AUTH_SOCK"' > /etc/sudoers.d/vagrant
+echo 'vagrant ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.d/vagrant
+/usr/bin/chmod 0440 /etc/sudoers.d/vagrant
+/usr/bin/install --directory --owner=vagrant --group=users --mode=0700 /home/vagrant/.ssh
+# These keys are the "insecure" public/private keypair we offer to base box creators for use in their base boxes
+# so that vagrant installations can automatically SSH into the boxes.
+/usr/bin/curl --output /home/vagrant/.ssh/authorized_keys --location https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub
+/usr/bin/chown vagrant:users /home/vagrant/.ssh/authorized_keys
+/usr/bin/chmod 0600 /home/vagrant/.ssh/authorized_keys
+# clean up
+/usr/bin/pacman -Rcns --noconfirm gptfdisk
+# cat <<-EOF > "${TARGET_DIR}${CONFIG_SCRIPT}"
+# 	echo '${FQDN}' > /etc/hostname
+#   echo "127.0.1.1	vagrant-arch64.org.localdomain	vagrant-arch64.org" >> /etc/hosts
+# 	/usr/bin/ln -s /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
+# 	hwclock --systohc --utc
+# 	echo 'KEYMAP=${KEYMAP}' > /etc/vconsole.conf
+# 	/usr/bin/sed -i 's/#${LANGUAGE}/${LANGUAGE}/' /etc/locale.gen
+# 	/usr/bin/locale-gen
+# 	/usr/bin/mkinitcpio -p linux
+# 	/usr/bin/usermod --password ${PASSWORD} root
+# 	# https://wiki.archlinux.org/index.php/Network_Configuration#Device_names
+# 	#/usr/bin/ln -s /dev/null /etc/udev/rules.d/80-net-setup-link.rules
+# 	#/usr/bin/ln -s '/usr/lib/systemd/system/dhcpcd@.service' '/etc/systemd/system/multi-user.target.wants/dhcpcd@eth0.service'
+# 	#/usr/bin/sed -i 's/#UseDNS yes/UseDNS no/' /etc/ssh/sshd_config
+# 	echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+# 	systemctl enable sshd.service
+# 	systemctl start sshd.service
+#   systemctl enable dhcpcd@enp0s3.service
+# 	# Vagrant-specific configuration
+# 	/usr/bin/useradd --password ${PASSWORD} --comment 'Vagrant User' --create-home --gid users vagrant
+# 	# may not need all this
+# 	echo 'Defaults env_keep += "SSH_AUTH_SOCK"' > /etc/sudoers.d/vagrant
+# 	echo 'vagrant ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.d/vagrant
+# 	/usr/bin/chmod 0440 /etc/sudoers.d/vagrant
+# 	/usr/bin/install --directory --owner=vagrant --group=users --mode=0700 /home/vagrant/.ssh
+# 	# These keys are the "insecure" public/private keypair we offer to base box creators for use in their base boxes
+# 	# so that vagrant installations can automatically SSH into the boxes.
+# 	/usr/bin/curl --output /home/vagrant/.ssh/authorized_keys --location https://raw.github.com/mitchellh/vagrant/master/keys/vagrant.pub
+# 	/usr/bin/chown vagrant:users /home/vagrant/.ssh/authorized_keys
+# 	/usr/bin/chmod 0600 /home/vagrant/.ssh/authorized_keys
+# 	# clean up
+# 	/usr/bin/pacman -Rcns --noconfirm gptfdisk
+# EOF
 
-echo '==> entering chroot and configuring system'
-/usr/bin/arch-chroot ${TARGET_DIR} ${CONFIG_SCRIPT}
-rm "${TARGET_DIR}${CONFIG_SCRIPT}"
+# echo '==> entering chroot and configuring system'
+# /usr/bin/arch-chroot ${TARGET_DIR} ${CONFIG_SCRIPT}
+# rm "${TARGET_DIR}${CONFIG_SCRIPT}"
 
 echo '==> installation complete!'
 /usr/bin/sleep 3
